@@ -1,0 +1,6 @@
+sentence-transformers
+Pillow
+numpy
+fastapi
+uvicorn[standard]
+tf-keras

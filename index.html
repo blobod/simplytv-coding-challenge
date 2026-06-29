@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Semantic Image Search</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="min-h-screen bg-slate-50 text-slate-800 antialiased">
+  <div class="mx-auto max-w-6xl px-4 py-12">
+
+    <!-- Header + search -->
+    <header class="mx-auto max-w-2xl text-center">
+      <h1 class="text-3xl font-semibold tracking-tight text-slate-900">
+        Semantic Image Search
+      </h1>
+      <p class="mt-2 text-slate-500">
+        Describe what you're looking for in plain language.
+      </p>
+
+      <form id="search-form" class="mt-8 flex items-center gap-2">
+        <input
+          id="query"
+          type="text"
+          autocomplete="off"
+          placeholder="e.g. a dog running on the beach at sunset"
+          class="flex-1 rounded-xl border border-slate-200 bg-white px-4 py-3 text-slate-800 shadow-sm outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-200"
+        />
+        <button
+          type="submit"
+          class="rounded-xl bg-slate-900 px-6 py-3 font-medium text-white shadow-sm transition hover:bg-slate-700 active:scale-95 disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          Search
+        </button>
+      </form>
+    </header>
+
+    <!-- Results -->
+    <main id="results" class="mt-12">
+      <!-- Empty state (shown before first search) -->
+      <div id="empty" class="py-20 text-center text-slate-400">
+        <p class="text-lg">Start typing a description above to find matching images.</p>
+      </div>
+    </main>
+
+  </div>
+
+  <script>
+    const API = ""; // same origin — backend serves this page
+    const form = document.getElementById("search-form");
+    const input = document.getElementById("query");
+    const button = form.querySelector("button");
+    const results = document.getElementById("results");
+
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const query = input.value.trim();
+      if (!query) return;
+
+      button.disabled = true;
+      renderLoading();
+
+      try {
+        const res = await fetch(`${API}/search`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ query }),
+        });
+        if (!res.ok) throw new Error(`Request failed (${res.status})`);
+        const data = await res.json();
+        renderResults(data.results);
+      } catch (err) {
+        renderMessage(`Something went wrong: ${err.message}`);
+      } finally {
+        button.disabled = false;
+      }
+    });
+
+    function renderLoading() {
+      // Skeleton grid while we wait.
+      const cells = Array.from({ length: 12 }, () =>
+        `<div class="aspect-square animate-pulse rounded-xl bg-slate-200"></div>`
+      ).join("");
+      results.innerHTML =
+        `<div class="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">${cells}</div>`;
+    }
+
+    function renderMessage(text) {
+      results.innerHTML =
+        `<div class="py-20 text-center text-slate-400"><p class="text-lg">${text}</p></div>`;
+    }
+
+    function renderResults(items) {
+      if (!items || items.length === 0) {
+        renderMessage("No matching images found.");
+        return;
+      }
+
+      const cards = items.map((item) => `
+        <figure class="group relative overflow-hidden rounded-xl bg-slate-200 shadow-sm">
+          <img
+            src="/thumbnails/${item.thumbnail}"
+            alt="${item.filename}"
+            loading="lazy"
+            class="aspect-square w-full object-cover transition duration-300 group-hover:scale-105"
+          />
+          <figcaption class="pointer-events-none absolute inset-x-0 bottom-0 flex items-center justify-between px-3 py-1.5 text-xs text-white" style="background-color: rgba(0, 0, 0, 0.6);">
+            <span class="truncate">${item.filename}</span>
+            <span class="ml-2 shrink-0 font-mono">${item.score.toFixed(2)}</span>
+          </figcaption>
+        </figure>
+      `).join("");
+
+      results.innerHTML =
+        `<div class="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">${cards}</div>`;
+    }
+  </script>
+</body>
+</html>
