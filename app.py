@@ -9,6 +9,7 @@ Run: uvicorn app:app --reload
 
 import json
 from pathlib import Path
+import os
 os.environ["USE_TF"] = "0"
 import numpy as np
 from fastapi import FastAPI
