@@ -4,7 +4,7 @@ Type a query in plain English and get back the images from a folder, ranked by h
 
 ## How it works
 
-The app is built on CLIP (`clip-ViT-B-32`, via `sentence-transformers`), a model that embeds both images and text into one shared vector space. Because pictures and words live in the same space, an image of a dog on a beach and the phrase *"a dog on the beach"* end up close together.
+The app is built on CLIP (`clip-ViT-B-32`, via `sentence-transformers`), a model that embeds both images and text into one shared vector space. Because pictures and words live in the same space, an image of a dog on a beach and the phrase _"a dog on the beach"_ end up close together.
 
 That lets the work split cleanly into two phases. Offline, every image in the folder gets embedded once and the vectors are saved to disk. Then at search time, only the short text query gets embedded and compared against those precomputed image vectors.
 
@@ -12,15 +12,23 @@ Ranking is by cosine similarity between the query vector and each image vector. 
 
 ## Flow
 
-```
-INDEX (offline, run once per image set)
-  images/ ──▶ CLIP image encoder ──▶ embeddings.npy + index.json (filenames)
-        └───▶ Pillow ──▶ thumbnails/ (small JPEGs)
+```mermaid
+flowchart TD
+    subgraph INDEX["Indexing (offline, run once)"]
+        A[images/ folder] --> B[CLIP image encoder]
+        B --> C[(embeddings.npy<br/>filenames.json)]
+        A --> D[Pillow] --> E[thumbnails/]
+    end
 
-SEARCH (per query)
-  text query ──▶ CLIP text encoder ──▶ query vector
-                                          │
-        embeddings.npy (held in memory) ──┴─▶ cosine similarity ──▶ top-k ──▶ frontend grid
+    subgraph SEARCH["Search (per query)"]
+        Q[text query] --> R[CLIP text encoder]
+        R --> S[query vector]
+        S --> T[cosine similarity<br/>vs embeddings, in memory]
+        C -.loaded at startup.-> T
+        T --> U[top-k filenames]
+        U --> V[frontend grid<br/>thumbnails served static]
+        E -.served as static files.-> V
+    end
 ```
 
 ## Design decisions
